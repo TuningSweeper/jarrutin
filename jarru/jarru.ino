@@ -6,7 +6,7 @@
 
 	Arduino IDE: 2.2.1
 	Board manager url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
-  Board: Raspberry Pi Pico
+	Board: Raspberry Pi Pico
 	´
 
 changelog
@@ -20,7 +20,15 @@ changelog
 		Kommentoitu
 		Parametrit nätisti
 		Lisätty suodin vähän pehmentämään jarrutuksen muuttumista
+
+	ver 0.3:
+  	Kovaa taistelua: tabs vs spaces
+    Lisätty sensorled
 */
+
+// jos tää on määritelty, niin tää vilkuttelee sitä levyllä olevaa lediä anturin tahdissa.
+// Huom. tän vilkku on *puolet* hitaampaa kuin mitä anturi näkee
+#define SENSORLED
 
 // jos tämä on määritelty, tulosteleee USB-uarttiin miten menee.
 // tuotantoversiota varten kommentoi pois.
@@ -35,9 +43,11 @@ changelog
 // loopInterval (ms) kertoo kuinka usein tila päivitty. 125 ms, eli 8hz lienee aika sopiva
 #define loopInterval 125
 
-// nää määrittelis minne PWM ja sensori olis kytketty.
+// nää määrittelis minne PWM ja sensori ja ledi olis kytketty.
+// ledi on sillä levyllä
 #define pwmOutputPin 5
-#define sensorInputPin 13
+#define sensorInputPin 28
+#define ledPin 25
 
 // tämä kertoo käytetäänkö pehmentämiseen filtteriä vai ei. Kommentoi pois, jos ei.
 #define useInputFilter
@@ -82,9 +92,9 @@ unsigned int getFilteredInputValue(unsigned int value) {
 	
 	// ja filtteröi
 	float filteredValue = inputBuffer[0];
-  for (int i=0; i<inputFilterN; i++) {
-      filteredValue = (inputFilterAlpha * inputBuffer[i]) + ((1.0 - inputFilterAlpha) * filteredValue);
-  }
+	for (int i=0; i<inputFilterN; i++) {
+		filteredValue = (inputFilterAlpha * inputBuffer[i]) + ((1.0 - inputFilterAlpha) * filteredValue);
+	}
 
 	// palautetaan se kokonaislukuna
 	return (unsigned int) filteredValue;
@@ -100,7 +110,13 @@ volatile unsigned int pulseCount;
 void pulseCounter() {
 	// tää vain laskee saapuneita keskeytyksiä 
 	pulseCount++;
+
+  // tää vähän auttaa sen anturin asemoinnissa.
+	#if defined(SENSORLED)
+  digitalWrite(ledPin, !digitalRead(ledPin));
+	#endif
 }
+
 
 
 
@@ -109,9 +125,9 @@ void pulseCounter() {
 // ********
 unsigned long previousMillis = 0;
 void loop() {
-	unsigned int value, rawValue, pwmValue;
-	
-		unsigned long currentMillis = millis();
+	unsigned int value, rawValue, pwmValue;	
+	unsigned long currentMillis = millis();
+
 	if (currentMillis - previousMillis >= loopInterval) {
 		previousMillis = currentMillis;
 		
@@ -167,12 +183,16 @@ void loop() {
 // ********
 
 void setup() {
+	#if defined(SENSORLED)
+  pinMode(ledPin, OUTPUT);
+	#endif
+
 	// Watchdog boottaa tän, jos käy hassusti.
 	rp2040.wdt_begin(loopInterval*3);
 
 	// Nollaillaan filtterin puskuri, jos tarvii.
 	#if defined(useInputFilter)
-		for(int i=0; i<inputFilterN; i++) inputBuffer[i] = 0;
+	for(int i=0; i<inputFilterN; i++) inputBuffer[i] = 0;
 	#endif
 
 	// nollataan pulssilaskuri
@@ -191,7 +211,7 @@ void setup() {
 	
 	// debuggi-tuloste sarjaporttiin.
 	#if defined(SERIALDEBUG)
-		Serial.begin(115200);
+	Serial.begin(115200);
 	#endif
 
 	// nollataan vielä watchdog-ajastin
