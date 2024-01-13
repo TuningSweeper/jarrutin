@@ -22,8 +22,13 @@ changelog
 		Lisätty suodin vähän pehmentämään jarrutuksen muuttumista
 
 	ver 0.3:
-  	Kovaa taistelua: tabs vs spaces
-    Lisätty sensorled
+		Kovaa taistelua: tabs vs spaces
+		Lisätty sensorled
+
+  ver 0.4:
+		tabs vs spaces erä II.
+    Viety PWM-lähtö takanurkkaan
+    Anturituloon alasvetovastus, ettei kellu.
 */
 
 // jos tää on määritelty, niin tää vilkuttelee sitä levyllä olevaa lediä anturin tahdissa.
@@ -32,20 +37,20 @@ changelog
 
 // jos tämä on määritelty, tulosteleee USB-uarttiin miten menee.
 // tuotantoversiota varten kommentoi pois.
-#define SERIALDEBUG
+//#define SERIALDEBUG
 
 // brakeMinLevel kertoo millä nopeudella (pulssia/sekunti) jarrutus alkaa
-#define brakeMinLevel 50
+#define brakeMinLevel 8
 
 // brakeMaxLevel kertoo millä nopeudella (pulssia/sekunti) jarrutus on TÄYSILLÄ
-#define brakeMaxLevel 400
+#define brakeMaxLevel 20
 
 // loopInterval (ms) kertoo kuinka usein tila päivitty. 125 ms, eli 8hz lienee aika sopiva
 #define loopInterval 125
 
 // nää määrittelis minne PWM ja sensori ja ledi olis kytketty.
 // ledi on sillä levyllä
-#define pwmOutputPin 5
+#define pwmOutputPin 15
 #define sensorInputPin 28
 #define ledPin 25
 
@@ -53,9 +58,11 @@ changelog
 #define useInputFilter
 // Filtteri on eksponentiaalinen liukuva keskiarvo, eli viimeisintä arvoa painotetaan eniten ja vanhinta vähiten
 // inputFilterN kertoo suotimen pisteiden määrän.  125 ms loopIntervallilla n=16 tarkoittaa kahta sekuntia
-#define inputFilterN 12
+//#define inputFilterN 12
+#define inputFilterN 4
 // inputFilterAlpha on ulostulon suotimen painotusten "jyrkkyys".
-#define inputFilterAlpha 0.2
+//#define inputFilterAlpha 0.3
+#define inputFilterAlpha 1
 
 // pwmFrequency kertoo millä taajuudella fettiä ajetaan. korkeampi taajuus vie vinkumisen korkeille taajuuksille (eikä kuulu, mutta fetti voi lämmetä enemmän)
 #define pwmFrequency 8000
@@ -106,14 +113,38 @@ unsigned int getFilteredInputValue(unsigned int value) {
 // pulssilaskuri
 // ********
 
+volatile unsigned long previousSensorInputMillis = 0;
+
+
 volatile unsigned int pulseCount;
 void pulseCounter() {
-	// tää vain laskee saapuneita keskeytyksiä 
-	pulseCount++;
+	int counter = 0;
+	// Kohinan takia tehdäänkin tämä näin. Keskeytyksen tullessa otetaan kellonaika ylös. tiettyyn aikaikkunaan tulevat uudet keskeytykset vaan ignoroidaan.
+	// tässä protossa se ignore aika on 10
+//	for(int i=0; i<12; i++) {
+//		if(!digitalRead(sensorInputPin)) counter++;
+//	}
+//  if(counter >= 10) pulseCount++;
 
-  // tää vähän auttaa sen anturin asemoinnissa.
+
+  unsigned long currentMillis = millis();
+
+	// Keskeytyksen lyödessä tarkistetaan pinnin tila vielä kolmesti.
+	for(int i=0; i<3; i++) {
+		if(!digitalRead(sensorInputPin)) counter++;
+	}
+	// Kaikkien kolmen pitää olla samat, muuten kyseessä kohina, mistä ei välitetä.
+  if (counter == 3) {
+    // Edellisestä pulssista pitää olla kulunut vähintään NNN millisekuntia,. 
+    if(currentMillis >= (previousSensorInputMillis + 10)) {
+      pulseCount++;
+    }
+    previousSensorInputMillis = currentMillis;
+  }
+
+	// tää vähän auttaa sen anturin asemoinnissa.
 	#if defined(SENSORLED)
-  digitalWrite(ledPin, !digitalRead(ledPin));
+	digitalWrite(ledPin, !digitalRead(ledPin));
 	#endif
 }
 
@@ -184,7 +215,7 @@ void loop() {
 
 void setup() {
 	#if defined(SENSORLED)
-  pinMode(ledPin, OUTPUT);
+	pinMode(ledPin, OUTPUT);
 	#endif
 
 	// Watchdog boottaa tän, jos käy hassusti.
@@ -199,8 +230,9 @@ void setup() {
 	pulseCount = 0;
 
 	// Tähän tulee nopeusanturin pulssit
-	pinMode(sensorInputPin, INPUT);
-	attachInterrupt(digitalPinToInterrupt(sensorInputPin), pulseCounter, RISING);
+	//pinMode(sensorInputPin, INPUT);
+  pinMode(sensorInputPin, INPUT_PULLUP);
+	attachInterrupt(digitalPinToInterrupt(sensorInputPin), pulseCounter, FALLING);
 
 	// PWM lähtö
 	pinMode(pwmOutputPin, OUTPUT);
