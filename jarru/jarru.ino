@@ -311,7 +311,7 @@ void setup() {
 	// Tää on testimoodi, joka replikoi sen anturin tilanteen. Ei tuotantoon
 	// Huom. Tässä ei ole mitään kohinasuodinta mukana!
 	#if defined(TESTMODE_LEDBLINKER)
-	pinMode(SENSOR_INPUT_PIN, INPUT_PULLUP);
+		pinMode(SENSOR_INPUT_PIN, INPUT_PULLUP);
 		while(1) {
 			digitalWrite(LED_PIN, digitalRead(SENSOR_INPUT_PIN));
 			rp2040.wdt_reset();
