@@ -25,51 +25,85 @@ changelog
 		Kovaa taistelua: tabs vs spaces
 		Lisätty sensorled
 
-  ver 0.4:
+	ver 0.4:
 		tabs vs spaces erä II.
-    Viety PWM-lähtö takanurkkaan
-    Anturituloon alasvetovastus, ettei kellu.
+		Viety PWM-lähtö takanurkkaan
+		Anturituloon alasvetovastus, ettei kellu.
+		Askarreltu kohinasuodinta tuloon
+
+	ver 0.5:
+		tabs vs spaces erä III.
+		askarreltu uusi status led
+		test-moodi jarrun voimakkuudelle
+		parametrisoitu input-kohina-filtteri
 */
 
+
+
+// Tää moodi on vain jarrutusvoiman testaukseen. Jos määritelty, niin tää
+// asettaa jarruvoiman asteikolla 0..255 tiettyyn tasoon eikä tee *mitään muuta*
+// Huom. jarruvoimalla 255 (tai lähellä sitä) voimaa ei riitä cpu:lle ja se kaatu
+//#define TESTMODE_BRAKELEVEL 30
+
+// Tää moodi on vain anturin asemoinnin testaukseen. Jos määritelty, niin tää
+// replikoi anturin tilaa, eikä tee *mitään muuta*
+//#define TESTMODE_LEDBLINKER
+
+
 // jos tää on määritelty, niin tää vilkuttelee sitä levyllä olevaa lediä anturin tahdissa.
-// Huom. tän vilkku on *puolet* hitaampaa kuin mitä anturi näkee
+// Huom. tän vilkku on *puolet* hitaampaa kuin mitä anturi näkee. Tuotantoa varten pois päältä.
 #define SENSORLED
 
 // jos tämä on määritelty, tulosteleee USB-uarttiin miten menee.
 // tuotantoversiota varten kommentoi pois.
 //#define SERIALDEBUG
 
-// brakeMinLevel kertoo millä nopeudella (pulssia/sekunti) jarrutus alkaa
-#define brakeMinLevel 8
+// BRAKE_LEVEL_MIN kertoo millä nopeudella (pulssia/sekunti) jarrutus alkaa
+#define BRAKE_LEVEL_MIN 8
 
-// brakeMaxLevel kertoo millä nopeudella (pulssia/sekunti) jarrutus on TÄYSILLÄ
-#define brakeMaxLevel 20
+// BRAKE_LEVEL_MAX kertoo millä nopeudella (pulssia/sekunti) jarrutus on TÄYSILLÄ
+#define BRAKE_LEVEL_MAX 20
 
-// loopInterval (ms) kertoo kuinka usein tila päivitty. 125 ms, eli 8hz lienee aika sopiva
-#define loopInterval 125
+// LOOP_INTERVAL (ms) kertoo kuinka usein tila päivitty. 125 ms, eli 8hz lienee aika sopiva
+#define LOOP_INTERVAL 125
+
+// INPUT_PULSE_HOLDOFF (ms) kertoo kuinka pitä aika kahden pulssin välillä pitää vähintään olla, että
+// se lasketaan. Tämä samalla rajaa systeemin laskeman maksiminopeuden. 10 ms = 100 pulssia sekunti = 6000 rpm.
+#define INPUT_PULSE_HOLDOFF 10
+
 
 // nää määrittelis minne PWM ja sensori ja ledi olis kytketty.
-// ledi on sillä levyllä
-#define pwmOutputPin 15
-#define sensorInputPin 28
-#define ledPin 25
+#define PWM_OUTPUT_PIN 15
+#define SENSOR_INPUT_PIN 28
+#define LED_PIN 2
 
-// tämä kertoo käytetäänkö pehmentämiseen filtteriä vai ei. Kommentoi pois, jos ei.
-#define useInputFilter
+
+// Tää kertoo käytetäänkö PWM-lähdön pehmentämiseen filtteriä vai ei.
+#define USE_OUTPUT_FILTER
+// Output filter on ihan vaan liukuva keskiarvo tietyllä N:llä.
+#define OUTPUT_FILTER_N 12 
+
+// Nämä kaksi kertoo, että kuinka monta kertaa tulosignaalin tila mitataan keskeytyksen liipaisun jälkeen
+// ja kuinka monta näistä pitää olla samoja, että se pulssi lasketaan. Tämä siis suodattaa pois tosi nopeat piikit.
+#define INPUT_PULSE_RECHECKS 3
+#define INPUT_PULSE_RECHECK_MIN 3
+
+// tämä kertoo käytetäänkö tulon pehmentämiseen filtteriä vai ei. Kommentoi pois, jos ei.
+#define USE_INPUT_FILTER
 // Filtteri on eksponentiaalinen liukuva keskiarvo, eli viimeisintä arvoa painotetaan eniten ja vanhinta vähiten
-// inputFilterN kertoo suotimen pisteiden määrän.  125 ms loopIntervallilla n=16 tarkoittaa kahta sekuntia
-//#define inputFilterN 12
-#define inputFilterN 4
-// inputFilterAlpha on ulostulon suotimen painotusten "jyrkkyys".
-//#define inputFilterAlpha 0.3
-#define inputFilterAlpha 1
+// INPUT_FILTER_N kertoo suotimen pisteiden määrän.  125 ms loopIntervallilla n=16 tarkoittaa kahta sekuntia
+//#define INPUT_FILTER_N 12
+#define INPUT_FILTER_N 4
+// INPUT_FILTER_ALPHA on ulostulon suotimen painotusten "jyrkkyys".
+//#define INPUT_FILTER_ALPHA 0.3
+#define INPUT_FILTER_ALPHA 1
 
-// pwmFrequency kertoo millä taajuudella fettiä ajetaan. korkeampi taajuus vie vinkumisen korkeille taajuuksille (eikä kuulu, mutta fetti voi lämmetä enemmän)
-#define pwmFrequency 8000
+// PWM_FREQUENCY kertoo millä taajuudella fettiä ajetaan. korkeampi taajuus vie vinkumisen korkeille taajuuksille (eikä kuulu, mutta fetti voi lämmetä enemmän)
+#define PWM_FREQUENCY 8000
 
-// pwmMax kertoo pwm-jarrun suurimman arvon. Sinne pitää jättää vähän löysää, että prossu pysyy virroissa. 255 arvo johtaa prossun boottaamiseen.
+// PWM_MAX kertoo pwm-jarrun suurimman arvon. Sinne pitää jättää vähän löysää, että prossu pysyy virroissa. 255 arvo johtaa prossun boottaamiseen.
 // arvolla 250 noin 2% moottorin tuottamasta energiasta on jarruohjaimen käytettävissä. Sen pitäis riittää.
-#define pwmMax 250
+#define PWM_MAX 250
 
 
 
@@ -79,11 +113,11 @@ changelog
 **********************************************************/ 
 
 // ********
-// filtteri
+// filtterit
 // ********
 
-// Tämä taulukko hilloaa inputFilterN kpl edellistä sensorin raaka-arvoa.
-unsigned int inputBuffer[inputFilterN];
+// Tämä taulukko hilloaa INPUT_FILTER_N kpl edellistä sensorin raaka-arvoa.
+unsigned int inputBuffer[INPUT_FILTER_N];
 
 // Tälle annetaan aina uusi "raaka-arvo", ja se pullauttaa ulos suodatetun arvon.
 // suodatetun arvon perusteella voi sitten katsoa tarvitaanko jarrua vai ei, ja kuinka paljon.
@@ -91,7 +125,7 @@ unsigned int inputBuffer[inputFilterN];
 unsigned int getFilteredInputValue(unsigned int value) {
 
 	// siirrä arvoja yksi pykälä eteenpäin
-	for(int i=inputFilterN-1; i>0; i--) {
+	for(int i=INPUT_FILTER_N-1; i>0; i--) {
 		inputBuffer[i] = inputBuffer[i-1];
 	}
 	// ja laita uusin arvo indeksiin 0
@@ -99,9 +133,32 @@ unsigned int getFilteredInputValue(unsigned int value) {
 	
 	// ja filtteröi
 	float filteredValue = inputBuffer[0];
-	for (int i=0; i<inputFilterN; i++) {
-		filteredValue = (inputFilterAlpha * inputBuffer[i]) + ((1.0 - inputFilterAlpha) * filteredValue);
+	for (int i=0; i<INPUT_FILTER_N; i++) {
+		filteredValue = (INPUT_FILTER_ALPHA * inputBuffer[i]) + ((1.0 - INPUT_FILTER_ALPHA) * filteredValue);
 	}
+
+	// palautetaan se kokonaislukuna
+	return (unsigned int) filteredValue;
+}
+
+
+// Tämä taulukko hilloaa OUTPUT_FILTER_N kpl edellistä sensorin raaka-arvoa.
+unsigned int outputBuffer[OUTPUT_FILTER_N];
+
+// Tälle annetaan aina uusi "raaka-arvo", ja se pullauttaa ulos suodatetun arvon.
+// Tyypiltään tämä on liukuva keskiarvo
+unsigned int getFilteredOutputValue(unsigned int value) {
+
+	// siirrä arvoja yksi pykälä eteenpäin
+	for(int i=OUTPUT_FILTER_N-1; i>0; i--) outputBuffer[i] = outputBuffer[i-1];
+
+	// ja laita uusin arvo indeksiin 0
+	outputBuffer[0] = value;
+	
+	// ja filtteröi
+	float filteredValue = 0;
+	for (int i=0; i<OUTPUT_FILTER_N; i++) filteredValue = outputBuffer[i] + filteredValue;
+	filteredValue = filteredValue/OUTPUT_FILTER_N;
 
 	// palautetaan se kokonaislukuna
 	return (unsigned int) filteredValue;
@@ -119,32 +176,25 @@ volatile unsigned long previousSensorInputMillis = 0;
 volatile unsigned int pulseCount;
 void pulseCounter() {
 	int counter = 0;
-	// Kohinan takia tehdäänkin tämä näin. Keskeytyksen tullessa otetaan kellonaika ylös. tiettyyn aikaikkunaan tulevat uudet keskeytykset vaan ignoroidaan.
-	// tässä protossa se ignore aika on 10
-//	for(int i=0; i<12; i++) {
-//		if(!digitalRead(sensorInputPin)) counter++;
-//	}
-//  if(counter >= 10) pulseCount++;
 
-
-  unsigned long currentMillis = millis();
+	unsigned long currentMillis = millis();
 
 	// Keskeytyksen lyödessä tarkistetaan pinnin tila vielä kolmesti.
-	for(int i=0; i<3; i++) {
-		if(!digitalRead(sensorInputPin)) counter++;
+	for(int i=0; i<INPUT_PULSE_RECHECKS; i++) {
+		if(!digitalRead(SENSOR_INPUT_PIN)) counter++;
 	}
 	// Kaikkien kolmen pitää olla samat, muuten kyseessä kohina, mistä ei välitetä.
-  if (counter == 3) {
-    // Edellisestä pulssista pitää olla kulunut vähintään NNN millisekuntia,. 
-    if(currentMillis >= (previousSensorInputMillis + 10)) {
-      pulseCount++;
-    }
-    previousSensorInputMillis = currentMillis;
-  }
+	if (counter >= INPUT_PULSE_RECHECK_MIN) {
+		// Edellisestä pulssista pitää olla kulunut vähintään NNN millisekuntia,. 
+		if(currentMillis >= (previousSensorInputMillis + INPUT_PULSE_HOLDOFF)) {
+			pulseCount++;
+		}
+		previousSensorInputMillis = currentMillis;
+	}
 
 	// tää vähän auttaa sen anturin asemoinnissa.
 	#if defined(SENSORLED)
-	digitalWrite(ledPin, !digitalRead(ledPin));
+		digitalWrite(LED_PIN, !digitalRead(LED_PIN));
 	#endif
 }
 
@@ -159,7 +209,7 @@ void loop() {
 	unsigned int value, rawValue, pwmValue;	
 	unsigned long currentMillis = millis();
 
-	if (currentMillis - previousMillis >= loopInterval) {
+	if (currentMillis - previousMillis >= LOOP_INTERVAL) {
 		previousMillis = currentMillis;
 		
 		// nollataan watchdog-ajastin
@@ -170,10 +220,10 @@ void loop() {
 		pulseCount = 0;
 		
 		// skaalataan saatu pulssimäärä taajuudeksi
-		rawValue = rawValue * (1000/loopInterval);
+		rawValue = rawValue * (1000/LOOP_INTERVAL);
 		
 		// tarviiko filtteröidä?
-		#if defined(useInputFilter)
+		#if defined(USE_INPUT_FILTER)
 			value = getFilteredInputValue(rawValue);
 		#else
 			value = rawValue;
@@ -181,19 +231,26 @@ void loop() {
 		
 		// funtsitaan jarrun asento.
 		pwmValue = 0; // oletuksena jarru pois
-		if(value > brakeMinLevel) {
+		if(value > BRAKE_LEVEL_MIN) {
 			// tarvitaan jarrua, mutta kuinka paljon?
-			if(value > brakeMaxLevel) {
+			if(value > BRAKE_LEVEL_MAX) {
 				// täys jarru+
-				pwmValue = pwmMax;
+				pwmValue = PWM_MAX;
 			} else {
 				// sopiva jarru
-				pwmValue = pwmMax * 1.0 / (brakeMaxLevel - brakeMinLevel) * (value - brakeMinLevel);
+				pwmValue = PWM_MAX * 1.0 / (BRAKE_LEVEL_MAX - BRAKE_LEVEL_MIN) * (value - BRAKE_LEVEL_MIN);
 			}
 		}		
 
+		// tarviiko filtteröidä?
+		#if defined(USE_OUTPUT_FILTER)
+			pwmValue = getFilteredOutputValue(pwmValue);
+		#else
+			pwmValue = pwmValue;
+		#endif
+
 		// asetetaan se PWM.
-		analogWrite(pwmOutputPin, pwmValue);
+		analogWrite(PWM_OUTPUT_PIN, pwmValue);
 
 		#if defined(SERIALDEBUG)
 			Serial.print("raw value: ");
@@ -215,35 +272,57 @@ void loop() {
 
 void setup() {
 	#if defined(SENSORLED)
-	pinMode(ledPin, OUTPUT);
+		pinMode(LED_PIN, OUTPUT);
 	#endif
 
 	// Watchdog boottaa tän, jos käy hassusti.
-	rp2040.wdt_begin(loopInterval*3);
+	rp2040.wdt_begin(LOOP_INTERVAL*3);
 
-	// Nollaillaan filtterin puskuri, jos tarvii.
+	// Nollaillaan filtterin puskurit, jos tarvii.
 	#if defined(useInputFilter)
-	for(int i=0; i<inputFilterN; i++) inputBuffer[i] = 0;
+		for(int i=0; i<INPUT_FILTER_N; i++) inputBuffer[i] = 0;
+	#endif
+	#if defined(useOutputFilter)
+		for(int i=0; i<OUTPUT_FILTER_N; i++) outputBuffer[i] = 0;
 	#endif
 
 	// nollataan pulssilaskuri
 	pulseCount = 0;
 
-	// Tähän tulee nopeusanturin pulssit
-	//pinMode(sensorInputPin, INPUT);
-  pinMode(sensorInputPin, INPUT_PULLUP);
-	attachInterrupt(digitalPinToInterrupt(sensorInputPin), pulseCounter, FALLING);
-
 	// PWM lähtö
-	pinMode(pwmOutputPin, OUTPUT);
-	analogWriteFreq(pwmFrequency);
+	pinMode(PWM_OUTPUT_PIN, OUTPUT);
+	analogWriteFreq(PWM_FREQUENCY);
 	analogWriteRange(255);
 	analogWriteResolution(8);
-	analogWrite(pwmOutputPin, 0);
+	analogWrite(PWM_OUTPUT_PIN, 0);
 	
-	// debuggi-tuloste sarjaporttiin.
+	// Tää on testimoodi jarruvoiman testaukseen. Ei tuotantokäyttöön
+	#if defined(TESTMODE_BRAKELEVEL)
+		analogWrite(PWM_OUTPUT_PIN, TESTMODE_BRAKELEVEL);
+		while(1) {
+			digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+			delay(250);
+			rp2040.wdt_reset();
+		}
+	#endif
+
+	// Tää on testimoodi, joka replikoi sen anturin tilanteen. Ei tuotantoon
+	// Huom. Tässä ei ole mitään kohinasuodinta mukana!
+	#if defined(TESTMODE_LEDBLINKER)
+	pinMode(SENSOR_INPUT_PIN, INPUT_PULLUP);
+		while(1) {
+			digitalWrite(LED_PIN, digitalRead(SENSOR_INPUT_PIN));
+			rp2040.wdt_reset();
+		}
+	#endif
+
+	// Tähän tulee nopeusanturin pulssit
+	pinMode(SENSOR_INPUT_PIN, INPUT_PULLUP);
+	attachInterrupt(digitalPinToInterrupt(SENSOR_INPUT_PIN), pulseCounter, FALLING);
+
+	// debuggi-tuloste sarjaporttiin, jos sellaista käytetään
 	#if defined(SERIALDEBUG)
-	Serial.begin(115200);
+		Serial.begin(115200);
 	#endif
 
 	// nollataan vielä watchdog-ajastin
