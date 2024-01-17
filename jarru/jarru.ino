@@ -28,14 +28,16 @@ changelog
 	ver 0.4:
 		tabs vs spaces erä II.
 		Viety PWM-lähtö takanurkkaan
-		Anturituloon alasvetovastus, ettei kellu.
+		Anturituloon ylösvetovastus, ettei kellu.
 		Askarreltu kohinasuodinta tuloon
 
 	ver 0.5:
 		tabs vs spaces erä III.
 		askarreltu uusi status led
 		test-moodi jarrun voimakkuudelle
+		test-moodi anturin asemoinnille
 		parametrisoitu input-kohina-filtteri
+		uusi output filtteri
 */
 
 
