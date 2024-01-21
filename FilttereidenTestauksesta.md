@@ -47,6 +47,8 @@ int main() {
 
 
 ## Epälineaarisuutta tuova potenssifunktio
+Funktion käppyrää voi tarkastella ja eksponenttiä tuunailla esim. URLissa:
+https://www.wolframalpha.com/input?i=plot+y%3D255*%28x%2F255%29%5E0.25+from+0+to+255
 
 ```
 #include <stdio.h>
