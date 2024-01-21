@@ -38,81 +38,137 @@ changelog
 		test-moodi anturin asemoinnille
 		parametrisoitu input-kohina-filtteri
 		uusi output filtteri
+
+	ver 0.6:
+		säädetty parametrejä. Tuntu jo ihan hyvältä
+
+	ver 0.7:
+		lisätty epälineaarisuus-optio. Paperilla se vaikuttaa hyvältä. EI OLE TESTATTU!
+		Tuunattu parametrejä. Veikkaus on, että nyt on aika hyvä.
+		Korjattu eksponentiaalisen liukuvan keskiarvon suotimen bugi
+		Lisätty vähän kommentteja.
 */
 
-
+// ****************
+// Toimintamoodista
 
 // Tää moodi on vain jarrutusvoiman testaukseen. Jos määritelty, niin tää
 // asettaa jarruvoiman asteikolla 0..255 tiettyyn tasoon eikä tee *mitään muuta*
-// Huom. jarruvoimalla 255 (tai lähellä sitä) voimaa ei riitä cpu:lle ja se kaatu
-//#define TESTMODE_BRAKELEVEL 30
+// Huom. jos laite ottaa oman virtansa moottorilta, niin jarruvoimalla 255
+// (tai lähellä sitä) energiaa ei välttämätä riitä cpu:lle ja se kaatuu
+//#define TESTMODE_BRAKELEVEL 250
 
 // Tää moodi on vain anturin asemoinnin testaukseen. Jos määritelty, niin tää
-// replikoi anturin tilaa, eikä tee *mitään muuta*
+// replikoi anturin tilaa, eikä tee *mitään muuta*. Eli vilkkuu kun pyörii.
 //#define TESTMODE_LEDBLINKER
 
-
 // jos tää on määritelty, niin tää vilkuttelee sitä levyllä olevaa lediä anturin tahdissa.
-// Huom. tän vilkku on *puolet* hitaampaa kuin mitä anturi näkee. Tuotantoa varten pois päältä.
+// Huom. tän vilkku on *puolet* hitaampaa kuin mitä anturi näkee. Tuotantoa varten pois päältä?
+// Vie kuitenkin virtaa turhaan..
 #define SENSORLED
 
 // jos tämä on määritelty, tulosteleee USB-uarttiin miten menee.
 // tuotantoversiota varten kommentoi pois.
-//#define SERIALDEBUG
+// #define SERIALDEBUG
+
+
+// ************************
+// käytön asetuksia
 
 // BRAKE_LEVEL_MIN kertoo millä nopeudella (pulssia/sekunti) jarrutus alkaa
-#define BRAKE_LEVEL_MIN 8
+//#define BRAKE_LEVEL_MIN 20
+#define BRAKE_LEVEL_MIN 15
 
 // BRAKE_LEVEL_MAX kertoo millä nopeudella (pulssia/sekunti) jarrutus on TÄYSILLÄ
-#define BRAKE_LEVEL_MAX 20
+//#define BRAKE_LEVEL_MAX 45
+#define BRAKE_LEVEL_MAX 30
 
-// LOOP_INTERVAL (ms) kertoo kuinka usein tila päivitty. 125 ms, eli 8hz lienee aika sopiva
-#define LOOP_INTERVAL 125
+// LOOP_INTERVAL (ms) kertoo kuinka usein tila päivitty. 333 ms, eli 3hz lienee aika sopiva.
+// Mitä tiheämmin systeemin tilaa päivitetään, sitä epätarkempi on nopeuden mittaus nykymallissa.
+// Ja muutenkin: koska systeemissä on aika suuri liikemäärä, ei asioita tarvitse päivittää kovin
+// ripeästi. Hihasta vedettynä 250 ms (eli 4hz) ... 500 ms (2 hz) kuulostaa sopivalta väliltä.
+#define LOOP_INTERVAL 333
 
-// INPUT_PULSE_HOLDOFF (ms) kertoo kuinka pitä aika kahden pulssin välillä pitää vähintään olla, että
-// se lasketaan. Tämä samalla rajaa systeemin laskeman maksiminopeuden. 10 ms = 100 pulssia sekunti = 6000 rpm.
-#define INPUT_PULSE_HOLDOFF 10
 
+// **************************************
+// optisen anturin kohinanpoistoa varten
+
+// INPUT_PULSE_HOLDOFF (ms) kertoo kuinka pitkä aika kahden pulssin välillä pitää vähintään olla, että
+// se lasketaan. Tämä samalla rajaa systeemin laskeman maksiminopeuden.
+// esim. 10 ms = 100 pulssia sekunti. Jos kierros on 48 pulssia, niin se tarkoittaa 120 rpm.
+// Arvolla 0 tämä optio on pois päältä.
+#define INPUT_PULSE_HOLDOFF 0
+
+// Nämä kaksi kertoo, että kuinka monta kertaa tulosignaalin tila mitataan keskeytyksen liipaisun jälkeen
+// ja kuinka monta näistä pitää olla samoja, että se pulssi lasketaan. Tämä siis suodattaa pois tosi nopeat piikit.
+// arvoilla 0 tämä feature on pois päältä.  Sen voi antaa olla jotain, niin eipähän pienet häiriöpiikit häiritse
+// (vaikka ei niitä hall-anturn kohdalla varmaan nähdäkään)
+#define INPUT_PULSE_RECHECKS 2
+#define INPUT_PULSE_RECHECK_MIN 2
+
+
+
+// **********************************************
+// Raudan kytkennät ja pinnit ja siihen liittyvät
 
 // nää määrittelis minne PWM ja sensori ja ledi olis kytketty.
 #define PWM_OUTPUT_PIN 15
 #define SENSOR_INPUT_PIN 28
 #define LED_PIN 2
 
+// PWM_FREQUENCY kertoo millä taajuudella fettiä ajetaan. korkeampi taajuus vie vinkumisen korkeille taajuuksille
+// Korkeat taajuudet ei kuulu, mutta fetti voi lämmetä enemmän. Vois olla kiinnostavaa myös kokeilla
+// pieniä arvoja miltä se *tuntuu* ja kuulostaa (100? en tiedä?).
+#define PWM_FREQUENCY 2000
 
-// Tää kertoo käytetäänkö PWM-lähdön pehmentämiseen filtteriä vai ei.
+// PWM_MAX kertoo pwm-jarrun suurimman arvon välillä 0..255.
+// JOS sen jarrun toimintasähkö otetaan moottorista, pitää tähän jättää vähän löysää, että prossun virtaa
+// ei oteta kokonaan pois 100% pwm:llä. (255 arvo johtaa prossun boottaamiseen.)
+// arvolla 251 noin 1% moottorin tuottamasta energiasta on jarruohjaimen käytettävissä.
+#define PWM_MAX 255
+
+
+// ***********************************************
+// Filtterioptiot ja muut pehmentimet.
+
+// USE_OUTPUT_FILTER kertoo käytetäänkö PWM-lähdön pehmentämiseen filtteriä vai ei.
+// Kommentoi pois jos ei. Filtterin tyyppi on tavallinen liukuva keskiarvo.
 #define USE_OUTPUT_FILTER
-// Output filter on ihan vaan liukuva keskiarvo tietyllä N:llä.
-#define OUTPUT_FILTER_N 12 
+// Output filter on ihan vaan liukuva keskiarvo tietyllä N:llä. Jos LOOP_INTERVAL on 333 ja N on 6
+// tarkoittaa se, sitä, että mutokset jarruvoimassa tulevat voimaan täysimääräisinä kahdessa sekunnissa.
+#define OUTPUT_FILTER_N 6
 
-// Nämä kaksi kertoo, että kuinka monta kertaa tulosignaalin tila mitataan keskeytyksen liipaisun jälkeen
-// ja kuinka monta näistä pitää olla samoja, että se pulssi lasketaan. Tämä siis suodattaa pois tosi nopeat piikit.
-#define INPUT_PULSE_RECHECKS 3
-#define INPUT_PULSE_RECHECK_MIN 3
-
-// tämä kertoo käytetäänkö tulon pehmentämiseen filtteriä vai ei. Kommentoi pois, jos ei.
-#define USE_INPUT_FILTER
+// USE_INPUT_FILTER pehmentää myös jarruvoimaa, mutta tämä pehmentää anturilta tulevia lukemia.
+//#define USE_INPUT_FILTER
 // Filtteri on eksponentiaalinen liukuva keskiarvo, eli viimeisintä arvoa painotetaan eniten ja vanhinta vähiten
-// INPUT_FILTER_N kertoo suotimen pisteiden määrän.  125 ms loopIntervallilla n=16 tarkoittaa kahta sekuntia
-//#define INPUT_FILTER_N 12
-#define INPUT_FILTER_N 4
-// INPUT_FILTER_ALPHA on ulostulon suotimen painotusten "jyrkkyys".
-//#define INPUT_FILTER_ALPHA 0.3
-#define INPUT_FILTER_ALPHA 1
+// INPUT_FILTER_N kertoo suotimen pisteiden määrän.  333 ms loopIntervallilla n=6 tarkoittaa kahta sekuntia
+#define INPUT_FILTER_N 6
+// INPUT_FILTER_ALPHA on ulostulon suotimen painotusten "jyrkkyys". Suurempi arvo painottaa tuoreita
+// arvoja paljon enemmän. Arvolla 0 ei oikeastaan enää tehdä mitään filtteröintiä. 
+#define INPUT_FILTER_ALPHA 0.4
 
-// PWM_FREQUENCY kertoo millä taajuudella fettiä ajetaan. korkeampi taajuus vie vinkumisen korkeille taajuuksille (eikä kuulu, mutta fetti voi lämmetä enemmän)
-#define PWM_FREQUENCY 8000
 
-// PWM_MAX kertoo pwm-jarrun suurimman arvon. Sinne pitää jättää vähän löysää, että prossu pysyy virroissa. 255 arvo johtaa prossun boottaamiseen.
-// arvolla 250 noin 2% moottorin tuottamasta energiasta on jarruohjaimen käytettävissä. Sen pitäis riittää.
-#define PWM_MAX 250
+// ********************************************************************
+// Epälinearisointi
 
+// Käytetäänkö jarrutustason asetuksessa epälineaarista funktiota?
+// vaihtoehtoisinen optio on toistaiseksi POWER. ehkä joskus tulee toinenkin optio
+// jos tämä on kommentoitu pois, niin PWM:n arvot ovat lineaariset.
+#define NONLINEARIZATION_FUNCTION POWER
+
+// Määrittää POWER -funktion eksponentin. Vaikuttaa sen "jyrkkyyteen". Pienempi on "jyrkempi"
+// Kyseessä on yksinkertainen potenssifunktio. Millään tavalla järkeviä eksponentin arvoja
+// on luvut välillä 0.1 .. 0.8.  joku 0.25 on ehkä hyvä aloituspiste.
+// Funktion käppyrää voi tarkastella ja eksponenttiä tuunailla esim. URLissa:
+// https://www.wolframalpha.com/input?i=plot+y%3D255*%28x%2F255%29%5E0.25+from+0+to+255
+#define NONLINEARIZATION_EXPONENT 0.25
 
 
 
 /**********************************************************
   KOODI ALKAIS SIT TÄSTÄ
 **********************************************************/ 
+#include <math.h>
 
 // ********
 // filtterit
@@ -133,9 +189,10 @@ unsigned int getFilteredInputValue(unsigned int value) {
 	// ja laita uusin arvo indeksiin 0
 	inputBuffer[0] = value;
 	
-	// ja filtteröi
+	// ja filtteröi. Tässä siis lasketaan tietyllä tavalla painotettu summa puskurin arvoista
+	// Tämä painottaa tuoreita arvoja enemmän kun vanhoja. 
 	float filteredValue = inputBuffer[0];
-	for (int i=0; i<INPUT_FILTER_N; i++) {
+	for (int i=INPUT_FILTER_N; i>0; i--) {
 		filteredValue = (INPUT_FILTER_ALPHA * inputBuffer[i]) + ((1.0 - INPUT_FILTER_ALPHA) * filteredValue);
 	}
 
@@ -165,6 +222,23 @@ unsigned int getFilteredOutputValue(unsigned int value) {
 	// palautetaan se kokonaislukuna
 	return (unsigned int) filteredValue;
 }
+
+
+
+// Potenssifunktioskaalaus, eli tämä funktio tekee epälinearisoinnin
+// yhtälö:  result = 255 * (input/255)^eksponentti
+int powerScaling(int input) {
+    double result;
+    
+    result = 255 * pow((double) input / 255, NONLINEARIZATION_EXPONENT);
+
+    // Rajoita tulos välille 0-255
+    if (result < 0) result = 0;
+    if (result > 255) result = 255;
+
+    return (int) result;
+}
+
 
 
 
@@ -208,7 +282,7 @@ void pulseCounter() {
 // ********
 unsigned long previousMillis = 0;
 void loop() {
-	unsigned int value, rawValue, pwmValue;	
+	unsigned int value, rawValue, rawPwmValue, pwmValue, pwmValueToSet;
 	unsigned long currentMillis = millis();
 
 	if (currentMillis - previousMillis >= LOOP_INTERVAL) {
@@ -233,37 +307,54 @@ void loop() {
 		
 		// funtsitaan jarrun asento.
 		pwmValue = 0; // oletuksena jarru pois
+		rawPwmValue = 0; // oletuksena jarru pois
 		if(value > BRAKE_LEVEL_MIN) {
 			// tarvitaan jarrua, mutta kuinka paljon?
 			if(value > BRAKE_LEVEL_MAX) {
 				// täys jarru+
-				pwmValue = PWM_MAX;
+				rawPwmValue = PWM_MAX;
 			} else {
 				// sopiva jarru
-				pwmValue = PWM_MAX * 1.0 / (BRAKE_LEVEL_MAX - BRAKE_LEVEL_MIN) * (value - BRAKE_LEVEL_MIN);
+				rawPwmValue = PWM_MAX * 1.0 / (BRAKE_LEVEL_MAX - BRAKE_LEVEL_MIN) * (value - BRAKE_LEVEL_MIN);
 			}
 		}		
 
 		// tarviiko filtteröidä?
 		#if defined(USE_OUTPUT_FILTER)
-			pwmValue = getFilteredOutputValue(pwmValue);
+			pwmValue = getFilteredOutputValue(rawPwmValue);
 		#else
-			pwmValue = pwmValue;
+			pwmValue = rawPwmValue;
 		#endif
 
+
+		// Tarviiko se PWM:n arvo vielä epälinearisoida?
+		#if NONLINEARIZATION_FUNCTION == POWER
+			pwmValueToSet = powerScaling(pwmValue);
+		#else
+			pwmValueToSet = pwmValue;
+		#endif
+
+
 		// asetetaan se PWM.
-		analogWrite(PWM_OUTPUT_PIN, pwmValue);
+		analogWrite(PWM_OUTPUT_PIN, pwmValueToSet);
+
 
 		#if defined(SERIALDEBUG)
-			Serial.print("raw value: ");
+			Serial.print("input value: ");
 			Serial.print(rawValue);
-			Serial.print("\t filtered value: ");
+			Serial.print("\t filtered: ");
 			Serial.print(value);
-			Serial.print("\t PWM Setting: ");
-			Serial.println(pwmValue);
+			Serial.print("\t raw PWM: ");
+			Serial.print(rawPwmValue);
+			Serial.print("\t filtered PWM Setting: ");
+			Serial.print(pwmValue);
+			Serial.print("\t nonlinearized PWM Setting: ");
+			Serial.println(pwmValueToSet);
 		#endif
 	}
 }
+
+
 
 
 
@@ -303,7 +394,7 @@ void setup() {
 		analogWrite(PWM_OUTPUT_PIN, TESTMODE_BRAKELEVEL);
 		while(1) {
 			digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-			delay(250);
+			delay(50);
 			rp2040.wdt_reset();
 		}
 	#endif
@@ -313,7 +404,7 @@ void setup() {
 	#if defined(TESTMODE_LEDBLINKER)
 		pinMode(SENSOR_INPUT_PIN, INPUT_PULLUP);
 		while(1) {
-			digitalWrite(LED_PIN, digitalRead(SENSOR_INPUT_PIN));
+			digitalWrite(LED_PIN, !digitalRead(SENSOR_INPUT_PIN));
 			rp2040.wdt_reset();
 		}
 	#endif
